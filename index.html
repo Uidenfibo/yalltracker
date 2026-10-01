@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unreleased Music Vault - Official Archive</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { 
+            background-color: #0b0f17; 
+            color: #f8fafc; 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+        }
+        .glass { 
+            background: rgba(17, 24, 39, 0.75); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255,255,255,0.08); 
+        }
+        .badge-unreleased { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+        .badge-remix { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+        .badge-remaster { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-leaked { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-bootleg { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <!-- Header / Navbar -->
+    <header class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4 glass p-6 rounded-2xl shadow-2xl">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-black tracking-tight text-indigo-400 flex items-center gap-3">
+                <i class="fa-solid fa-compact-disc text-indigo-500 animate-spin-slow"></i> 
+                Yetracker
+            </h1>
+            <p class="text-slate-400 text-xs md:text-sm mt-1">All of Ye's Unreleased Albums.</p>
+        </div>
+        
+        <div class="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Vault Live Synchronized</span>
+        </div>
+    </header>
+
+    <!-- Toolbar: Search, Filter, and Sorting -->
+    <section class="max-w-6xl mx-auto mb-8 glass p-4 rounded-2xl flex flex-col md:flex-row gap-4 justify-between items-center">
+        <!-- Text Search -->
+        <div class="relative w-full md:w-80">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Search album, artist or era..." 
+                   class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <!-- Category Filter -->
+            <select id="categoryFilter" onchange="applyFilters()" class="bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-300 focus:outline-none focus:border-indigo-500">
+                <option value="ALL">All Categories</option>
+                <option value="Unreleased">Unreleased</option>
+                <option value="Fan Edit / Remix">Fan Edit / Remix</option>
+                <option value="Remaster / Clean">Remaster / Clean</option>
+                <option value="Leaked Era">Leaked Era</option>
+                <option value="Bootleg">Bootleg</option>
+            </select>
+
+            <!-- Sorting -->
+            <select id="sortSelect" onchange="applyFilters()" class="bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-300 focus:outline-none focus:border-indigo-500">
+                <option value="NEWEST">Newest First</option>
+                <option value="TITLE">Title (A-Z)</option>
+                <option value="ERA">Era / Year</option>
+                <option value="FAVORITES">Favorites First</option>
+            </select>
+        </div>
+    </section>
+
+    <!-- Loading Indicator -->
+    <div id="loadingState" class="max-w-6xl mx-auto py-20 text-center glass rounded-2xl">
+        <i class="fa-solid fa-circle-notch text-4xl text-indigo-500 animate-spin mb-4"></i>
+        <h3 class="text-lg font-bold text-slate-300">Loading Archive...</h3>
+        <p class="text-slate-500 text-xs mt-1">Connecting to GitHub cloud servers...</p>
+    </div>
+
+    <!-- Error Indicator -->
+    <div id="errorState" class="max-w-6xl mx-auto py-16 text-center glass rounded-2xl hidden">
+        <i class="fa-solid fa-triangle-exclamation text-4xl text-amber-500 mb-4"></i>
+        <h3 class="text-lg font-bold text-slate-200">Unable to load database</h3>
+        <p class="text-slate-400 text-xs mt-2 max-w-md mx-auto">Could not synchronize JSON file from repository. Verify that `vault.json` is publicly visible in the root of the repository.</p>
+        <button onclick="fetchCloudData()" class="mt-6 bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-slate-700 px-5 py-2.5 rounded-xl text-xs font-semibold transition">
+            <i class="fa-solid fa-rotate-right mr-1.5"></i> Retry
+        </button>
+    </div>
+
+    <!-- Album List Container -->
+    <main id="albumsContainer" class="max-w-6xl mx-auto grid grid-cols-1 gap-6">
+        <!-- Albums will be loaded here -->
+    </main>
+
+    <!-- Toast Notification for link copying -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-indigo-600 text-white px-4 py-3 rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2 translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <i class="fa-solid fa-check-circle text-base"></i>
+        <span id="toastMessage">Link copied to clipboard!</span>
+    </div>
+
+    <script>
+        // Direct Raw URL of GitHub repository (using jsDelivr CDN to avoid CORS issues)
+        const PRIMARY_CLOUD_URL = 'https://cdn.jsdelivr.net/gh/Uidenfibo/yalltracker@main/vault.json';
+        const FALLBACK_CLOUD_URL = 'https://raw.githubusercontent.com/Uidenfibo/yalltracker/main/vault.json';
+
+        // Application State
+        let projects = [];
+        let filteredProjects = [];
+        let favorites = JSON.parse(localStorage.getItem('unreleased_viewer_favs')) || [];
+
+        // Initialization: Automatically load data from cloud
+        async function fetchCloudData() {
+            showLoading(true);
+            showError(false);
+
+            try {
+                // Attempt 1: Primary URL
+                let response = await fetch(PRIMARY_CLOUD_URL);
+                
+                // Attempt 2: Fallback URL if primary fails
+                if (!response.ok) {
+                    response = await fetch(FALLBACK_CLOUD_URL);
+                }
+
+                if (!response.ok) throw new Error('Network response failed');
+
+                const data = await response.json();
+                
+                if (Array.isArray(data)) {
+                    projects = data;
+                } else if (data && Array.isArray(data.projects)) {
+                    projects = data.projects;
+                } else {
+                    projects = [];
+                }
+
+                showLoading(false);
+                applyFilters();
+
+            } catch (err) {
+                console.error("Error loading JSON:", err);
+                showLoading(false);
+                showError(true);
+            }
+        }
+
+        function showLoading(state) {
+            document.getElementById('loadingState').classList.toggle('hidden', !state);
+        }
+
+        function showError(state) {
+            document.getElementById('errorState').classList.toggle('hidden', !state);
+        }
+
+        // Filters and Sorting
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const category = document.getElementById('categoryFilter').value;
+            const sortBy = document.getElementById('sortSelect').value;
+
+            filteredProjects = projects.filter(p => {
+                const matchesSearch = (p.title || '').toLowerCase().includes(searchTerm) ||
+                                      (p.artists || '').toLowerCase().includes(searchTerm) ||
+                                      (p.era || '').toLowerCase().includes(searchTerm) ||
+                                      (p.notes || '').toLowerCase().includes(searchTerm);
+
+                const matchesCategory = (category === 'ALL') || (p.status === category);
+
+                return matchesSearch && matchesCategory;
+            });
+
+            filteredProjects.sort((a, b) => {
+                const isFavA = favorites.includes(a.id);
+                const isFavB = favorites.includes(b.id);
+
+                if (sortBy === 'FAVORITES') {
+                    if (isFavA && !isFavB) return -1;
+                    if (!isFavA && isFavB) return 1;
+                }
+
+                if (sortBy === 'TITLE') {
+                    return (a.title || '').localeCompare(b.title || '');
+                }
+                
+                if (sortBy === 'ERA') {
+                    return (b.era || '').localeCompare(a.era || '');
+                }
+
+                // NEWEST default
+                return (b.id || 0) - (a.id || 0);
+            });
+
+            renderProjects();
+        }
+
+        // Interface Rendering
+        function renderProjects() {
+            const container = document.getElementById('albumsContainer');
+            container.innerHTML = '';
+
+            if (filteredProjects.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 glass rounded-2xl">
+                        <i class="fa-solid fa-compact-disc text-5xl text-slate-700 mb-4 animate-spin-slow"></i>
+                        <h3 class="text-xl font-bold text-slate-400">No albums found</h3>
+                        <p class="text-slate-500 text-xs mt-1">Try changing search parameters or filters.</p>
+                    </div>`;
+                return;
+            }
+
+            filteredProjects.forEach((proj) => {
+                const isFav = favorites.includes(proj.id);
+                const badgeClass = getBadgeStyle(proj.status);
+
+                let linksHtml = '';
+                if (proj.links && proj.links.length > 0) {
+                    linksHtml = proj.links.map(l => `
+                        <div class="inline-flex items-center rounded-xl overflow-hidden border border-slate-700/70 bg-slate-800/80 hover:bg-slate-700/80 transition text-xs">
+                            <a href="${l.url}" target="_blank" class="px-3.5 py-2 font-medium text-indigo-300 hover:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> ${escapeHtml(l.name)}
+                            </a>
+                            <button onclick="copyToClipboard('${escapeHtml(l.url)}')" class="px-2.5 py-2 border-l border-slate-700/70 text-slate-400 hover:text-white bg-slate-900/40" title="Copy Link">
+                                <i class="fa-solid fa-copy text-[11px]"></i>
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    linksHtml = `<span class="text-xs text-slate-600 italic">No external links available</span>`;
+                }
+
+                const html = `
+                <div class="glass rounded-2xl p-6 shadow-xl relative transition-all duration-200 hover:border-slate-700/80">
+                    <div class="flex flex-col md:flex-row gap-6 items-start">
+                        <!-- Album Artwork -->
+                        <div class="relative group flex-shrink-0">
+                            <img src="${proj.cover || 'https://via.placeholder.com/150/1e293b/818cf8?text=NO+COVER'}" 
+                                 class="w-28 h-28 md:w-32 md:h-32 rounded-xl object-cover shadow-2xl border border-slate-700/80 bg-slate-800" 
+                                 alt="Cover">
+                            <button onclick="toggleFavorite('${proj.id}')" 
+                                    class="absolute top-2 right-2 w-8 h-8 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700 flex items-center justify-center transition ${isFav ? 'text-amber-400' : 'text-slate-500 hover:text-amber-400'}"
+                                    title="${isFav ? 'Remove from Favorites' : 'Add to Favorites'}">
+                                <i class="fa-${isFav ? 'solid' : 'regular'} fa-star text-sm"></i>
+                            </button>
+                        </div>
+
+                        <!-- Album Details -->
+                        <div class="flex-grow space-y-3 w-full">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full ${badgeClass}">
+                                        ${proj.status || 'Unreleased'}
+                                    </span>
+                                    ${proj.era ? `<span class="text-xs text-slate-400 font-medium bg-slate-800/80 px-2.5 py-0.5 rounded-full border border-slate-700/50"><i class="fa-regular fa-calendar mr-1 text-[10px]"></i> ${escapeHtml(proj.era)}</span>` : ''}
+                                </div>
+                            </div>
+
+                            <div>
+                                <h2 class="text-xl md:text-2xl font-black text-white tracking-tight">${escapeHtml(proj.title)}</h2>
+                                <p class="text-indigo-300 text-xs md:text-sm font-semibold mt-0.5">
+                                    <i class="fa-solid fa-microphone-lines text-xs mr-1 opacity-70"></i> ${escapeHtml(proj.artists)}
+                                </p>
+                            </div>
+
+                            <!-- Quick Stats -->
+                            <div class="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1">
+                                ${proj.tracksCount ? `<span><i class="fa-solid fa-list-ol mr-1 text-slate-500"></i> ${escapeHtml(proj.tracksCount)} tracks</span>` : ''}
+                                ${proj.duration ? `<span><i class="fa-regular fa-clock mr-1 text-slate-500"></i> ${escapeHtml(proj.duration)}</span>` : ''}
+                            </div>
+
+                            ${proj.notes ? `
+                                <p class="text-slate-400 text-xs leading-relaxed bg-slate-900/50 p-3 rounded-xl border border-slate-800/80 italic">
+                                    "${escapeHtml(proj.notes)}"
+                                </p>
+                            ` : ''}
+
+                            <!-- Links Section -->
+                            <div class="pt-2 border-t border-slate-800/80 flex flex-wrap gap-2 items-center">
+                                ${linksHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+                container.innerHTML += html;
+            });
+        }
+
+        // Favorites Management
+        function toggleFavorite(id) {
+            if (favorites.includes(id)) {
+                favorites = favorites.filter(favId => favId !== id);
+            } else {
+                favorites.push(id);
+            }
+            localStorage.setItem('unreleased_viewer_favs', JSON.stringify(favorites));
+            applyFilters();
+        }
+
+        // Utility: badge styling
+        function getBadgeStyle(status) {
+            switch(status) {
+                case 'Fan Edit / Remix': return 'badge-remix';
+                case 'Remaster / Clean': return 'badge-remaster';
+                case 'Leaked Era': return 'badge-leaked';
+                case 'Bootleg': return 'badge-bootleg';
+                default: return 'badge-unreleased';
+            }
+        }
+
+        // Utility: Copy link
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Link copied to clipboard!");
+            }).catch(() => {
+                showToast("Unable to copy link.");
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Auto-run on page load
+        fetchCloudData();
+    </script>
+</body>
+</html>
